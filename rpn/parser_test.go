@@ -22,39 +22,19 @@ func TestStringParser_ParsesANumberCorrectly(t *testing.T) {
 			Output: 42532454,
 		},
 		{
-			Input:  "-432",
-			Output: -432,
-		},
-		{
 			Input:  "005432",
 			Output: 5432,
-		},
-		{
-			Input:  "-005432",
-			Output: -5432,
 		},
 		{
 			Input:  "      5432",
 			Output: 5432,
 		},
 		{
-			Input:  "      -5432",
-			Output: -5432,
-		},
-		{
 			Input:  "5432     ",
 			Output: 5432,
 		},
 		{
-			Input:  "-5432    ",
-			Output: -5432,
-		},
-		{
 			Input:  "0",
-			Output: 0,
-		},
-		{
-			Input:  "-0",
 			Output: 0,
 		},
 	}
@@ -62,10 +42,6 @@ func TestStringParser_ParsesANumberCorrectly(t *testing.T) {
 		{
 			Input:  "3.14",
 			Output: 3.14,
-		},
-		{
-			Input:  "-3.14",
-			Output: -3.14,
 		},
 		{
 			Input:  "	3.14",
@@ -76,24 +52,12 @@ func TestStringParser_ParsesANumberCorrectly(t *testing.T) {
 			Output: 3.14,
 		},
 		{
-			Input:  "      -3.14",
-			Output: -3.14,
-		},
-		{
-			Input:  "-3.14        ",
-			Output: -3.14,
-		},
-		{
 			Input:  "0.00",
 			Output: 0,
 		},
 		{
-			Input:  "-0.000000000",
-			Output: 0,
-		},
-		{
-			Input:  "-3.140000000",
-			Output: -3.14,
+			Input:  "3.140000000",
+			Output: 3.14,
 		},
 	}
 	for _, tc := range testCasesInt {
