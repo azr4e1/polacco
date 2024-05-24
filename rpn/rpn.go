@@ -96,6 +96,9 @@ func (r *RPNStack) Div() error {
 	if err != nil {
 		return err
 	}
+	if item2 == 0 {
+		return errors.New("cannot divide by 0")
+	}
 
 	item1, err = r.Pop()
 	if err != nil {
