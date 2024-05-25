@@ -106,21 +106,30 @@ func (s *RPNScanner) Scan() bool {
 			token = string(s.exp[i])
 			continue
 		}
-		if !outside && !(unicode.IsDigit(rune(curr)) || curr == '.') {
+		if !outside && isNum && !(unicode.IsDigit(rune(curr)) || curr == '.') {
 			setNumberToken(s, token)
 			return true
 		}
 
+		if outside && !(strings.Contains(IgnoreCharacters, string(curr)) || unicode.IsDigit(rune(curr))) {
+			outside = false
+			isNum = false
+			token = string(s.exp[i])
+			continue
+		}
+		if !outside && !isNum && (strings.Contains(IgnoreCharacters, string(curr)) || unicode.IsDigit(rune(curr))) {
+			if ok := checkOperation(s, token); ok {
+				return true
+			}
+			outside = true
+			i--
+			continue
+		}
 		if strings.Contains(IgnoreCharacters, string(curr)) {
 			continue
 		}
+
 		token += string(curr)
-		if outside {
-			if ok := checkOperation(s, token); ok {
-				s.pos++
-				return true
-			}
-		}
 	}
 	s.pos = i
 
