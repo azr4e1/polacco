@@ -474,3 +474,74 @@ func TestStringParserPow_PowersTwoElements(t *testing.T) {
 		}
 	}
 }
+
+func TestStringParserSum_ReturnsError(t *testing.T) {
+	t.Parallel()
+	input := "23452 +"
+	stack := rpn.NewStack()
+	err := rpn.StringParser(stack, input)
+	if err == nil {
+		t.Error("want error, got nil")
+	}
+}
+
+func TestStringParserDiff_ReturnsError(t *testing.T) {
+	t.Parallel()
+	input := "23452 -   "
+	stack := rpn.NewStack()
+	err := rpn.StringParser(stack, input)
+	if err == nil {
+		t.Error("want error, got nil")
+	}
+}
+
+func TestStringParserMul_ReturnsError(t *testing.T) {
+	t.Parallel()
+	input := "23452 *   "
+	stack := rpn.NewStack()
+	err := rpn.StringParser(stack, input)
+	if err == nil {
+		t.Error("want error, got nil")
+	}
+}
+
+func TestStringParserDiv_ReturnsError(t *testing.T) {
+	t.Parallel()
+	input := "23452 /   "
+	stack := rpn.NewStack()
+	err := rpn.StringParser(stack, input)
+	if err == nil {
+		t.Error("want error, got nil")
+	}
+
+	input = "2345234 0 /"
+	stack = rpn.NewStack()
+	err = rpn.StringParser(stack, input)
+	if err == nil {
+		t.Error("want error for dividing by zero, got nil")
+	}
+}
+
+func TestStringParserPow_ReturnsError(t *testing.T) {
+	t.Parallel()
+	input := "23452 ^   "
+	stack := rpn.NewStack()
+	err := rpn.StringParser(stack, input)
+	if err == nil {
+		t.Error("want error, got nil")
+	}
+
+	input = "0 0 ^"
+	stack = rpn.NewStack()
+	err = rpn.StringParser(stack, input)
+	if err == nil {
+		t.Error("want error for 0 ^ 0, got nil")
+	}
+
+	input = "0 1 - 0.3 ^"
+	stack = rpn.NewStack()
+	err = rpn.StringParser(stack, input)
+	if err == nil {
+		t.Error("want error for negative ^ decimal, got nil")
+	}
+}
