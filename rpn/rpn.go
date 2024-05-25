@@ -38,7 +38,7 @@ func (r *RPNStack) Push(item float64) {
 
 func (r *RPNStack) Add() error {
 	if len(r.values) < 2 {
-		return errors.New("not enough elements to add")
+		return errors.New("not enough elements in the stack")
 	}
 
 	var item2, item1 float64
@@ -62,7 +62,7 @@ func (r *RPNStack) Add() error {
 
 func (r *RPNStack) Diff() error {
 	if len(r.values) < 2 {
-		return errors.New("not enough elements to add")
+		return errors.New("not enough elements in the stack")
 	}
 
 	var item2, item1 float64
@@ -86,7 +86,7 @@ func (r *RPNStack) Diff() error {
 
 func (r *RPNStack) Div() error {
 	if len(r.values) < 2 {
-		return errors.New("not enough elements to add")
+		return errors.New("not enough elements in the stack")
 	}
 
 	var item2, item1 float64
@@ -113,7 +113,7 @@ func (r *RPNStack) Div() error {
 
 func (r *RPNStack) Mul() error {
 	if len(r.values) < 2 {
-		return errors.New("not enough elements to add")
+		return errors.New("not enough elements in the stack")
 	}
 
 	var item2, item1 float64
@@ -137,7 +137,7 @@ func (r *RPNStack) Mul() error {
 
 func (r *RPNStack) Pow() error {
 	if len(r.values) < 2 {
-		return errors.New("not enough elements to add")
+		return errors.New("not enough elements in the stack")
 	}
 
 	var item2, item1 float64
