@@ -153,6 +153,14 @@ func (r *RPNStack) Pow() error {
 		return err
 	}
 
+	if item1 == 0 && item2 == 0 {
+		return errors.New("cannot raise 0 to the power of 0")
+	}
+
+	if item1 < 0 && item2-math.Trunc(item2) != 0 {
+		return errors.New("cannot raise a negative number to a fractional exponent")
+	}
+
 	pow := math.Pow(item1, item2)
 	r.Push(pow)
 
