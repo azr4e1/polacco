@@ -16,10 +16,12 @@ var Help = `Ok homeboy
 `
 
 type session struct {
-	input  io.Reader
-	output io.Writer
-	error  io.Writer
-	stack  *rpn.RPNStack
+	input          io.Reader
+	output         io.Writer
+	error          io.Writer
+	stack          *rpn.RPNStack
+	history        []string
+	maxHistorySize int
 }
 
 type option func(*session) error
@@ -27,10 +29,11 @@ type option func(*session) error
 func NewSession(opts ...option) (*session, error) {
 	stack := rpn.NewStack()
 	s := &session{
-		input:  os.Stdin,
-		output: os.Stdout,
-		error:  os.Stderr,
-		stack:  stack,
+		input:          os.Stdin,
+		output:         os.Stdout,
+		error:          os.Stderr,
+		stack:          stack,
+		maxHistorySize: 50,
 	}
 
 	for _, o := range opts {
@@ -85,6 +88,17 @@ func SetStack(vals ...float64) option {
 	}
 }
 
+func SetMaxHistorySize(maxHistorySize int) option {
+	return func(s *session) error {
+		if maxHistorySize < 0 {
+			return errors.New("cannot set negative history size")
+		}
+
+		s.maxHistorySize = maxHistorySize
+		return nil
+	}
+}
+
 func (s *session) Exec(expr string) {
 	cleanExpr := strings.ToLower(strings.TrimSpace(expr))
 	switch cleanExpr {
@@ -117,7 +131,14 @@ func (s *session) Run() {
 	scanner := bufio.NewScanner(s.input)
 	for scanner.Scan() {
 		expr := scanner.Text()
+		s.history = append(s.history, expr)
+		s.history = s.history[:min(len(s.history), s.maxHistorySize)]
+
 		s.Exec(expr)
 		fmt.Fprintf(s.output, "> ")
 	}
+}
+
+func (s *session) GetHistory() []string {
+	return s.history
 }
