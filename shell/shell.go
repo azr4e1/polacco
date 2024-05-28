@@ -34,6 +34,7 @@ type session struct {
 	history        []string
 	maxHistorySize int
 	historyPointer int
+	prompt         string
 }
 
 type option func(*session) error
@@ -46,6 +47,7 @@ func NewSession(opts ...option) (*session, error) {
 		error:          os.Stderr,
 		stack:          stack,
 		maxHistorySize: 50,
+		prompt:         "> ",
 	}
 
 	for _, o := range opts {
@@ -107,6 +109,13 @@ func SetMaxHistorySize(maxHistorySize int) option {
 		}
 
 		s.maxHistorySize = maxHistorySize
+		return nil
+	}
+}
+
+func SetPrompt(prompt string) option {
+	return func(s *session) error {
+		s.prompt = prompt
 		return nil
 	}
 }
@@ -195,13 +204,13 @@ func (s *session) GetNextHistoryElement() (string, error) {
 }
 
 func (s *session) Run() {
-	fmt.Fprintf(s.output, "> ")
+	fmt.Fprintf(s.output, s.prompt)
 	scanner := bufio.NewScanner(s.input)
 	for scanner.Scan() {
 		expr := scanner.Text()
 		s.updateHistory(expr)
 
 		s.Exec(expr)
-		fmt.Fprintf(s.output, "> ")
+		fmt.Fprintf(s.output, s.prompt)
 	}
 }
