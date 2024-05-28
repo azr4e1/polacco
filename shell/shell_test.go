@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/azr4e1/polacco/shell"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestShellRun_RunsListCorrectly(t *testing.T) {
@@ -211,5 +212,32 @@ func TestShellRun_ReturnsErrorForParsingErrors(t *testing.T) {
 
 	if want != got {
 		t.Errorf("want %s, got %s", want, got)
+	}
+}
+
+func TestShellRun_StoresHistoryCorrectly(t *testing.T) {
+	t.Parallel()
+	input := new(bytes.Buffer)
+	output := new(bytes.Buffer)
+	error := new(bytes.Buffer)
+	session, err := shell.NewSession(
+		shell.SetStdin(input),
+		shell.SetStdout(output),
+		shell.SetStderr(error),
+	)
+	if err != nil {
+		t.Error(err)
+	}
+	inputStr := "3 1 2 +  \npop\np\nh\nl  \nls\n^\n-"
+	_, err = input.Write([]byte(inputStr))
+	if err != nil {
+		t.Error(err)
+	}
+	want := []string{"3 1 2 +  ", "pop", "p", "h", "l  ", "ls", "^", "-"}
+	session.Run()
+	got := session.GetHistory()
+
+	if !cmp.Equal(want, got) {
+		t.Error(cmp.Diff(want, got))
 	}
 }
