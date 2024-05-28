@@ -11,8 +11,19 @@ import (
 	"github.com/azr4e1/polacco/rpn"
 )
 
-var Help = `Ok homeboy
+var Help = `
+h: print this help
+q: quit
+p: pop and show last element of stack
+r: reset stack
+l: show stack
 
+Supported operations:
+	+: sum
+	-: diff
+	/: div
+	*: mul
+	^: pow
 `
 
 type session struct {
