@@ -33,6 +33,7 @@ type session struct {
 	stack          *rpn.RPNStack
 	history        []string
 	maxHistorySize int
+	historyPointer int
 }
 
 type option func(*session) error
@@ -142,8 +143,7 @@ func (s *session) Run() {
 	scanner := bufio.NewScanner(s.input)
 	for scanner.Scan() {
 		expr := scanner.Text()
-		s.history = append(s.history, expr)
-		s.history = s.history[:min(len(s.history), s.maxHistorySize)]
+		s.updateHistory(expr)
 
 		s.Exec(expr)
 		fmt.Fprintf(s.output, "> ")
@@ -152,4 +152,36 @@ func (s *session) Run() {
 
 func (s *session) GetHistory() []string {
 	return s.history
+}
+
+func (s *session) updateHistory(expr string) {
+	// ignore empty
+	if strings.TrimSpace(expr) == "" {
+		return
+	}
+	// ignore repetition
+	if length := len(s.history); length > 0 && s.history[length-1] == expr {
+		return
+	}
+	s.history = append(s.history, expr)
+	s.history = s.history[max(0, len(s.history)-s.maxHistorySize):len(s.history)]
+	s.historyPointer = len(s.history) // reset pointer to last element
+}
+
+func (s *session) GetPrevHistoryElement() (string, error) {
+	if s.historyPointer <= 0 {
+		s.historyPointer = 0
+		return "", errors.New("earliest point in history")
+	}
+	s.historyPointer--
+	return s.history[s.historyPointer], nil
+}
+
+func (s *session) GetNextHistoryElement() (string, error) {
+	if s.historyPointer >= len(s.history)-1 {
+		s.historyPointer = len(s.history) - 1
+		return "", errors.New("latest point in history")
+	}
+	s.historyPointer++
+	return s.history[s.historyPointer], nil
 }
