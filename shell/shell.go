@@ -115,38 +115,46 @@ func (s *session) Exec(expr string) {
 	cleanExpr := strings.ToLower(strings.TrimSpace(expr))
 	switch cleanExpr {
 	case "h", "he", "hel", "help":
-		fmt.Fprintln(s.output, Help)
+		s.Help()
 	case "l", "ls", "li", "lis", "list":
-		fmt.Fprintf(s.output, "%v\n", s.stack.GetValues())
+		s.List()
 	case "p", "po", "pop":
-		val, err := s.stack.Pop()
-		if err != nil {
-			fmt.Fprintln(s.error, "error:", err)
-			return
-		}
-		fmt.Fprintln(s.output, val)
+		s.Pop()
 	case "r", "re", "res", "rese", "reset":
-		stack := rpn.NewStack()
-		s.stack = stack
+		s.Reset()
 	case "q", "qu", "qui", "quit":
 		os.Exit(0)
 	default:
-		err := rpn.StringParser(s.stack, cleanExpr)
-		if err != nil {
-			fmt.Fprintln(s.error, "error:", err)
-		}
+		s.Parse(cleanExpr)
 	}
 }
 
-func (s *session) Run() {
-	fmt.Fprintf(s.output, "> ")
-	scanner := bufio.NewScanner(s.input)
-	for scanner.Scan() {
-		expr := scanner.Text()
-		s.updateHistory(expr)
+func (s *session) Help() {
+	fmt.Fprintln(s.output, Help)
+}
 
-		s.Exec(expr)
-		fmt.Fprintf(s.output, "> ")
+func (s *session) List() {
+	fmt.Fprintf(s.output, "%v\n", s.stack.GetValues())
+}
+
+func (s *session) Pop() {
+	val, err := s.stack.Pop()
+	if err != nil {
+		fmt.Fprintln(s.error, "error:", err)
+		return
+	}
+	fmt.Fprintln(s.output, val)
+}
+
+func (s *session) Reset() {
+	stack := rpn.NewStack()
+	s.stack = stack
+}
+
+func (s *session) Parse(expr string) {
+	err := rpn.StringParser(s.stack, expr)
+	if err != nil {
+		fmt.Fprintln(s.error, "error:", err)
 	}
 }
 
@@ -184,4 +192,16 @@ func (s *session) GetNextHistoryElement() (string, error) {
 	}
 	s.historyPointer++
 	return s.history[s.historyPointer], nil
+}
+
+func (s *session) Run() {
+	fmt.Fprintf(s.output, "> ")
+	scanner := bufio.NewScanner(s.input)
+	for scanner.Scan() {
+		expr := scanner.Text()
+		s.updateHistory(expr)
+
+		s.Exec(expr)
+		fmt.Fprintf(s.output, "> ")
+	}
 }
