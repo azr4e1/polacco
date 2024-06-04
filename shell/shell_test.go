@@ -18,6 +18,7 @@ func TestShellRun_RunsListCorrectly(t *testing.T) {
 		shell.SetStdin(input),
 		shell.SetStdout(output),
 		shell.SetStderr(error),
+		shell.SetPrompt("> "),
 	)
 	if err != nil {
 		t.Error(err)
@@ -45,6 +46,7 @@ func TestShellRun_RunsPopCorrectly(t *testing.T) {
 		shell.SetStdin(input),
 		shell.SetStdout(output),
 		shell.SetStderr(error),
+		shell.SetPrompt("> "),
 	)
 	if err != nil {
 		t.Error(err)
@@ -72,6 +74,7 @@ func TestShellRun_PopReturnsErrorCorrectly(t *testing.T) {
 		shell.SetStdin(input),
 		shell.SetStdout(output),
 		shell.SetStderr(error),
+		shell.SetPrompt("> "),
 	)
 	if err != nil {
 		t.Error(err)
@@ -99,6 +102,7 @@ func TestShellRun_ResetRunsCorrectly(t *testing.T) {
 		shell.SetStdin(input),
 		shell.SetStdout(output),
 		shell.SetStderr(error),
+		shell.SetPrompt("> "),
 	)
 	if err != nil {
 		t.Error(err)
@@ -126,6 +130,7 @@ func TestShellRun_ReturnsErrorForParsingErrors(t *testing.T) {
 		shell.SetStdin(input),
 		shell.SetStdout(output),
 		shell.SetStderr(error),
+		shell.SetPrompt("> "),
 	)
 	if err != nil {
 		t.Error(err)
@@ -150,6 +155,7 @@ func TestShellRun_ReturnsErrorForParsingErrors(t *testing.T) {
 		shell.SetStdin(input),
 		shell.SetStdout(output),
 		shell.SetStderr(error),
+		shell.SetPrompt("> "),
 	)
 	if err != nil {
 		t.Error(err)
@@ -174,6 +180,7 @@ func TestShellRun_ReturnsErrorForParsingErrors(t *testing.T) {
 		shell.SetStdin(input),
 		shell.SetStdout(output),
 		shell.SetStderr(error),
+		shell.SetPrompt("> "),
 	)
 	if err != nil {
 		t.Error(err)

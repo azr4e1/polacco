@@ -26,7 +26,7 @@ Supported operations:
 	^: pow
 `
 
-type session struct {
+type Session struct {
 	input          io.Reader
 	output         io.Writer
 	error          io.Writer
@@ -35,19 +35,20 @@ type session struct {
 	maxHistorySize int
 	historyPointer int
 	prompt         string
+	help           string
 }
 
-type option func(*session) error
+type option func(*Session) error
 
-func NewSession(opts ...option) (*session, error) {
+func NewSession(opts ...option) (*Session, error) {
 	stack := rpn.NewStack()
-	s := &session{
+	s := &Session{
 		input:          os.Stdin,
 		output:         os.Stdout,
 		error:          os.Stderr,
 		stack:          stack,
 		maxHistorySize: 50,
-		prompt:         "> ",
+		help:           Help,
 	}
 
 	for _, o := range opts {
@@ -61,7 +62,7 @@ func NewSession(opts ...option) (*session, error) {
 }
 
 func SetStdin(stdin io.Reader) option {
-	return func(s *session) error {
+	return func(s *Session) error {
 		if stdin == nil {
 			return errors.New("stdin is nil")
 		}
@@ -72,7 +73,7 @@ func SetStdin(stdin io.Reader) option {
 }
 
 func SetStdout(stdout io.Writer) option {
-	return func(s *session) error {
+	return func(s *Session) error {
 		if stdout == nil {
 			return errors.New("stdout is nil")
 		}
@@ -83,7 +84,7 @@ func SetStdout(stdout io.Writer) option {
 }
 
 func SetStderr(stderr io.Writer) option {
-	return func(s *session) error {
+	return func(s *Session) error {
 		if stderr == nil {
 			return errors.New("stderr is nil")
 		}
@@ -94,7 +95,7 @@ func SetStderr(stderr io.Writer) option {
 }
 
 func SetStack(vals ...float64) option {
-	return func(s *session) error {
+	return func(s *Session) error {
 		stack := rpn.NewStack(vals...)
 		s.stack = stack
 
@@ -103,7 +104,7 @@ func SetStack(vals ...float64) option {
 }
 
 func SetMaxHistorySize(maxHistorySize int) option {
-	return func(s *session) error {
+	return func(s *Session) error {
 		if maxHistorySize < 0 {
 			return errors.New("cannot set negative history size")
 		}
@@ -114,13 +115,20 @@ func SetMaxHistorySize(maxHistorySize int) option {
 }
 
 func SetPrompt(prompt string) option {
-	return func(s *session) error {
+	return func(s *Session) error {
 		s.prompt = prompt
 		return nil
 	}
 }
 
-func (s *session) Exec(expr string) {
+func SetHelp(help string) option {
+	return func(s *Session) error {
+		s.help = help
+		return nil
+	}
+}
+
+func (s *Session) Exec(expr string) {
 	cleanExpr := strings.ToLower(strings.TrimSpace(expr))
 	switch cleanExpr {
 	case "h", "he", "hel", "help":
@@ -138,15 +146,15 @@ func (s *session) Exec(expr string) {
 	}
 }
 
-func (s *session) Help() {
+func (s *Session) Help() {
 	fmt.Fprintln(s.output, Help)
 }
 
-func (s *session) List() {
+func (s *Session) List() {
 	fmt.Fprintf(s.output, "%v\n", s.stack.GetValues())
 }
 
-func (s *session) Pop() {
+func (s *Session) Pop() {
 	val, err := s.stack.Pop()
 	if err != nil {
 		fmt.Fprintln(s.error, "error:", err)
@@ -155,23 +163,23 @@ func (s *session) Pop() {
 	fmt.Fprintln(s.output, val)
 }
 
-func (s *session) Reset() {
+func (s *Session) Reset() {
 	stack := rpn.NewStack()
 	s.stack = stack
 }
 
-func (s *session) Parse(expr string) {
+func (s *Session) Parse(expr string) {
 	err := rpn.StringParser(s.stack, expr)
 	if err != nil {
 		fmt.Fprintln(s.error, "error:", err)
 	}
 }
 
-func (s *session) GetHistory() []string {
+func (s *Session) GetHistory() []string {
 	return s.history
 }
 
-func (s *session) updateHistory(expr string) {
+func (s *Session) updateHistory(expr string) {
 	// ignore empty
 	if strings.TrimSpace(expr) == "" {
 		return
@@ -185,7 +193,7 @@ func (s *session) updateHistory(expr string) {
 	s.historyPointer = len(s.history) // reset pointer to last element
 }
 
-func (s *session) GetPrevHistoryElement() (string, error) {
+func (s *Session) GetPrevHistoryElement() (string, error) {
 	if s.historyPointer <= 0 {
 		s.historyPointer = 0
 		return "", errors.New("earliest point in history")
@@ -194,7 +202,7 @@ func (s *session) GetPrevHistoryElement() (string, error) {
 	return s.history[s.historyPointer], nil
 }
 
-func (s *session) GetNextHistoryElement() (string, error) {
+func (s *Session) GetNextHistoryElement() (string, error) {
 	if s.historyPointer >= len(s.history)-1 {
 		s.historyPointer = len(s.history) - 1
 		return "", errors.New("latest point in history")
@@ -203,7 +211,7 @@ func (s *session) GetNextHistoryElement() (string, error) {
 	return s.history[s.historyPointer], nil
 }
 
-func (s *session) Run() {
+func (s *Session) Run() {
 	fmt.Fprintf(s.output, s.prompt)
 	scanner := bufio.NewScanner(s.input)
 	for scanner.Scan() {
