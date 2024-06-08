@@ -24,7 +24,7 @@ type model struct {
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return m.rl.Blink()
 }
 
 func (m model) View() string {
@@ -43,9 +43,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.repl {
 				return m, tea.ClearScreen
 			}
+
 		case key.Matches(msg, DefaultKeyMap.Quit):
 			return m, tea.Quit
 		}
+
 	case readline.ReadlineMsg:
 		m.actionParse(string(msg))
 	}
@@ -58,9 +60,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func initialModel() tea.Model {
 	stack := rpn.NewStack()
-	rl := readline.Model{
-		Prompt: ">> ",
-	}
+	rl := readline.New()
 	return model{
 		stack: stack,
 		rl:    rl,
