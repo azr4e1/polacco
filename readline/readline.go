@@ -21,6 +21,7 @@ type Model struct {
 	MaxHistorySize int
 	TextStyle      lipgloss.Style
 	PromptStyle    lipgloss.Style
+	Width          int
 
 	currentPrompt       string
 	history             []string
@@ -28,6 +29,9 @@ type Model struct {
 	historyPromptCached string
 	cursorPointer       int
 	cursor              cursor.Model
+	windowWidth         int
+	offsetLeft          int
+	offsetRight         int
 }
 
 func New(opts ...option) Model {
@@ -38,6 +42,7 @@ func New(opts ...option) Model {
 		MaxHistorySize: 100,
 		TextStyle:      textStyle,
 		PromptStyle:    textStyle,
+		Width:          -1,
 		cursor:         cursor.New(),
 	}
 
@@ -91,21 +96,30 @@ func SetPromptStyle(style lipgloss.Style) option {
 	}
 }
 
+func SetWidth(width int) option {
+	return func(m *Model) error {
+		m.Width = width
+		return nil
+	}
+}
+
 func (m Model) View() string {
 	output := m.PromptStyle.Inline(true).Render(m.Prompt)
-	switch m.cursorPointer {
-	case len(m.currentPrompt):
-		output += m.TextStyle.Inline(true).Render(m.currentPrompt) + m.cursor.View()
+	currentPrompt := m.currentPrompt[m.offsetLeft:m.offsetRight]
+	cursorPointer := m.cursorPointer - m.offsetLeft
+	switch cursorPointer {
+	case len(currentPrompt):
+		output += m.TextStyle.Inline(true).Render(currentPrompt) + m.cursor.View()
 
 	case 0:
-		output += m.cursor.View() + m.TextStyle.Inline(true).Render(m.currentPrompt[1:])
+		output += m.cursor.View() + m.TextStyle.Inline(true).Render(currentPrompt[1:])
 
-	case len(m.currentPrompt) - 1:
-		output += m.TextStyle.Inline(true).Render(m.currentPrompt[:len(m.currentPrompt)-1]) + m.cursor.View()
+	case len(currentPrompt) - 1:
+		output += m.TextStyle.Inline(true).Render(currentPrompt[:len(currentPrompt)-1]) + m.cursor.View()
 
 	default:
-		prev := m.currentPrompt[:m.cursorPointer]
-		next := m.currentPrompt[m.cursorPointer+1:]
+		prev := currentPrompt[:cursorPointer]
+		next := currentPrompt[cursorPointer+1:]
 		output += m.TextStyle.Inline(true).Render(prev) + m.cursor.View() + m.TextStyle.Inline(true).Render(next)
 	}
 
@@ -153,12 +167,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, DefaultKeyMap.Esc):
 			m.esc()
 
-		case key.Matches(msg, DefaultKeyMap.Truncate):
+		case key.Matches(msg, DefaultKeyMap.DeleteAfterCursor):
 			m.deleteAfterCursor()
 
 		case msg.Type == tea.KeyRunes || msg.Type == tea.KeySpace:
 			m.updateCurrentInput(msg.String())
 		}
+	case tea.WindowSizeMsg:
+		m.windowWidth = msg.Width
 	}
 
 	var cmd tea.Cmd
@@ -170,6 +186,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		cmds = append(cmds, m.cursor.BlinkCmd())
 	}
 
+	m.handleOverflow()
 	return m, tea.Batch(cmds...)
 }
 
@@ -321,4 +338,31 @@ func (m *Model) deleteBeforeCursor() {
 
 func (m *Model) Blink() tea.Cmd {
 	return cursor.Blink
+}
+
+func (m *Model) handleOverflow() {
+	var maxWidth int
+	if m.Width <= 0 {
+		maxWidth = max(0, m.windowWidth-len(m.Prompt)-1)
+	} else {
+		maxWidth = max(0, min(m.Width, m.windowWidth)-len(m.Prompt)-1)
+	}
+
+	if len(m.currentPrompt)+len(m.Prompt) <= maxWidth {
+		m.offsetLeft = 0
+		m.offsetRight = len(m.currentPrompt)
+		return
+	}
+	m.offsetRight = min(m.offsetRight, len(m.currentPrompt))
+	m.offsetLeft = max(m.offsetLeft, 0)
+
+	if m.cursorPointer < m.offsetLeft {
+		m.offsetLeft = m.cursorPointer
+		m.offsetRight = min(m.offsetLeft+maxWidth, len(m.currentPrompt))
+	}
+
+	if m.cursorPointer > m.offsetRight-1 {
+		m.offsetRight = m.cursorPointer
+		m.offsetLeft = max(m.offsetRight-maxWidth, 0)
+	}
 }

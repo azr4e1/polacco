@@ -5,19 +5,20 @@ import (
 )
 
 type KeyMap struct {
-	Up        key.Binding
-	Down      key.Binding
-	Start     key.Binding
-	End       key.Binding
-	Left      key.Binding
-	Right     key.Binding
-	Quit      key.Binding
-	Enter     key.Binding
-	Tab       key.Binding
-	Delete    key.Binding
-	Backspace key.Binding
-	Esc       key.Binding
-	Truncate  key.Binding
+	Up                 key.Binding
+	Down               key.Binding
+	Start              key.Binding
+	End                key.Binding
+	Left               key.Binding
+	Right              key.Binding
+	Quit               key.Binding
+	Enter              key.Binding
+	Tab                key.Binding
+	Delete             key.Binding
+	Backspace          key.Binding
+	Esc                key.Binding
+	DeleteAfterCursor  key.Binding
+	DeleteBeforeCursor key.Binding
 }
 
 var DefaultKeyMap = KeyMap{
@@ -53,8 +54,11 @@ var DefaultKeyMap = KeyMap{
 		key.WithKeys("enter"),
 		key.WithHelp("enter", "enter"),
 	),
-	Truncate: key.NewBinding(
+	DeleteAfterCursor: key.NewBinding(
 		key.WithKeys("ctrl+k"),
+	),
+	DeleteBeforeCursor: key.NewBinding(
+		key.WithKeys("ctrl+x"),
 	),
 	Tab: key.NewBinding(
 		key.WithKeys("tab"),
