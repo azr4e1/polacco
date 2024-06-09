@@ -1,6 +1,9 @@
 package readline
 
 import (
+	"fmt"
+	"log"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/cursor"
@@ -104,18 +107,26 @@ func SetWidth(width int) option {
 }
 
 func (m Model) View() string {
+	f, err := tea.LogToFile("debug.log", "debug")
+	if err != nil {
+		fmt.Println("fatal:", err)
+		os.Exit(1)
+	}
+	defer f.Close()
+	log.Println(m.Width)
 	output := m.PromptStyle.Inline(true).Render(m.Prompt)
 	currentPrompt := m.currentPrompt[m.offsetLeft:m.offsetRight]
 	cursorPointer := m.cursorPointer - m.offsetLeft
 	switch cursorPointer {
 	case len(currentPrompt):
+		// if m.offsetRight < len(m.currentPrompt)
 		output += m.TextStyle.Inline(true).Render(currentPrompt) + m.cursor.View()
-
-	case 0:
-		output += m.cursor.View() + m.TextStyle.Inline(true).Render(currentPrompt[1:])
 
 	case len(currentPrompt) - 1:
 		output += m.TextStyle.Inline(true).Render(currentPrompt[:len(currentPrompt)-1]) + m.cursor.View()
+
+	case 0:
+		output += m.cursor.View() + m.TextStyle.Inline(true).Render(currentPrompt[1:])
 
 	default:
 		prev := currentPrompt[:cursorPointer]
@@ -310,10 +321,12 @@ func (m *Model) setHistoryPrompt() {
 	if m.historyPointer >= len(m.history) {
 		m.currentPrompt = m.historyPromptCached
 		m.cursorPointer = len(m.currentPrompt)
+		m.cursor.SetChar(EmptyChar)
 		return
 	}
 	m.currentPrompt = m.history[m.historyPointer]
 	m.cursorPointer = len(m.currentPrompt)
+	m.cursor.SetChar(EmptyChar)
 }
 
 func (m *Model) esc() {
@@ -340,6 +353,10 @@ func (m *Model) Blink() tea.Cmd {
 	return cursor.Blink
 }
 
+func (m *Model) BlinkOff() {
+	m.cursor.Blink = false
+}
+
 func (m *Model) handleOverflow() {
 	var maxWidth int
 	if m.Width <= 0 {
@@ -361,8 +378,8 @@ func (m *Model) handleOverflow() {
 		m.offsetRight = min(m.offsetLeft+maxWidth, len(m.currentPrompt))
 	}
 
-	if m.cursorPointer > m.offsetRight-1 {
-		m.offsetRight = m.cursorPointer
+	if m.cursorPointer >= m.offsetRight {
+		m.offsetRight = min(m.cursorPointer+1, len(m.currentPrompt))
 		m.offsetLeft = max(m.offsetRight-maxWidth, 0)
 	}
 }
