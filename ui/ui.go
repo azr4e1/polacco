@@ -58,6 +58,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, DefaultKeyMap.Quit):
+			m.quitting = true
 			return m, tea.Quit
 		}
 
@@ -103,7 +104,7 @@ func (m *model) actionParse(input string) {
 	default:
 		err := rpn.StringParser(m.stack, cleanExpr)
 		if err != nil {
-			m.currentOutput = fmt.Sprint("error:", err)
+			m.currentOutput = fmt.Sprint("error: ", err)
 			return
 		}
 		m.currentOutput = ""
