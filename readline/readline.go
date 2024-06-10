@@ -1,9 +1,6 @@
 package readline
 
 import (
-	"fmt"
-	"log"
-	"os"
 	"strings"
 
 	"github.com/charmbracelet/bubbles/cursor"
@@ -107,13 +104,6 @@ func SetWidth(width int) option {
 }
 
 func (m Model) View() string {
-	f, err := tea.LogToFile("debug.log", "debug")
-	if err != nil {
-		fmt.Println("fatal:", err)
-		os.Exit(1)
-	}
-	defer f.Close()
-	log.Println(m.Width)
 	output := m.PromptStyle.Inline(true).Render(m.Prompt)
 	currentPrompt := m.currentPrompt[m.offsetLeft:m.offsetRight]
 	cursorPointer := m.cursorPointer - m.offsetLeft
