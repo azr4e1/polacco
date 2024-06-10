@@ -2,8 +2,8 @@ package rpn
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
-	"strings"
 	"unicode"
 )
 
@@ -51,7 +51,7 @@ func (o RPNOperation) Apply(s *RPNStack) error {
 	case OperationPow:
 		err = s.Pow()
 	default:
-		err = errors.New("Unknown operation")
+		err = errors.New("unknown operation")
 	}
 
 	return err
@@ -59,101 +59,94 @@ func (o RPNOperation) Apply(s *RPNStack) error {
 
 type RPNScanner struct {
 	token RPNElement
-	exp   string
+	input string
 	pos   int
+	err   error
 }
 
 func NewRPNScanner(exp string) *RPNScanner {
-	return &RPNScanner{exp: exp}
+	return &RPNScanner{input: exp}
 }
 
-func setNumberToken(s *RPNScanner, token string) {
-	conv, err := strconv.ParseFloat(token, 64)
-	if err != nil {
-		return
-	}
-
-	s.token = RPNFloat(conv)
-}
-
-func checkOperation(s *RPNScanner, token string) bool {
-	switch token {
-	case OperationSum, OperationPow, OperationDiff, OperationDiv, OperationMul:
-		s.token = RPNOperation(token)
-		return true
-	default:
-		return false
-	}
-
+func isFloatChar(exp rune) bool {
+	return unicode.IsDigit(exp) || exp == '.'
 }
 
 func (s *RPNScanner) Scan() bool {
-	if s.pos == len(s.exp) {
-		return false
-	}
+	for s.pos < len(s.input) {
+		ch := s.input[s.pos]
+		switch {
+		case unicode.IsDigit(rune(ch)):
+			start := s.pos
+			periodCounter := 0
+			for s.pos < len(s.input) && isFloatChar(rune(s.input[s.pos])) {
+				if s.input[s.pos] == '.' {
+					periodCounter++
+				}
+				if periodCounter >= 2 {
+					break
+				}
+				s.pos++
+			}
+			token := s.input[start:s.pos]
+			conv, err := strconv.ParseFloat(token, 64)
+			s.token = RPNFloat(conv)
+			s.err = err
+			return true
 
-	outside := true
-	isNum := false
-	token := ""
-	var i int
-	for i = s.pos; i < len(s.exp); i++ {
-		s.pos = i
-		curr := s.exp[i]
+		case string(ch) == OperationSum:
+			s.pos++
+			s.token = RPNOperation(ch)
+			return true
 
-		if outside && unicode.IsDigit(rune(curr)) {
-			outside = false
-			isNum = true
-			token = string(s.exp[i])
-			continue
-		}
-		if !outside && isNum && !(unicode.IsDigit(rune(curr)) || curr == '.') {
-			setNumberToken(s, token)
+		case string(ch) == OperationDiff:
+			s.pos++
+			s.token = RPNOperation(ch)
+			return true
+
+		case string(ch) == OperationMul:
+			s.pos++
+			s.token = RPNOperation(ch)
+			return true
+
+		case string(ch) == OperationDiv:
+			s.pos++
+			s.token = RPNOperation(ch)
+			return true
+
+		case string(ch) == OperationPow:
+			s.pos++
+			s.token = RPNOperation(ch)
+			return true
+
+		case unicode.IsSpace(rune(ch)):
+			s.pos++
+
+		default:
+			s.pos++
+			s.token = nil
+			s.err = fmt.Errorf("unexpected character: %s", string(ch))
 			return true
 		}
-
-		if outside && !(strings.Contains(IgnoreCharacters, string(curr)) || unicode.IsDigit(rune(curr))) {
-			outside = false
-			isNum = false
-			token = string(s.exp[i])
-			continue
-		}
-		if !outside && !isNum && (strings.Contains(IgnoreCharacters, string(curr)) || unicode.IsDigit(rune(curr))) {
-			if ok := checkOperation(s, token); ok {
-				return true
-			}
-			outside = true
-			i--
-			continue
-		}
-		if strings.Contains(IgnoreCharacters, string(curr)) {
-			continue
-		}
-
-		token += string(curr)
-	}
-	s.pos = i
-
-	if isNum {
-		setNumberToken(s, token)
-		return true
-	}
-	if ok := checkOperation(s, token); ok {
-		return true
 	}
 
 	return false
 }
 
-func (s *RPNScanner) Token() RPNElement {
-	return s.token
+func (s *RPNScanner) Token() (RPNElement, error) {
+	token, err := s.token, s.err
+	s.token, s.err = nil, nil
+	return token, err
 }
 
 func StringParser(rs *RPNStack, exp string) error {
-
 	scanner := NewRPNScanner(exp)
 	for scanner.Scan() {
-		token := scanner.Token()
-		err := token.Apply(rs)
+		token, err := scanner.Token()
+		if err != nil {
+			return err
+		}
+		err = token.Apply(rs)
 		if err != nil {
 			return err
 		}
