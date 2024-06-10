@@ -14,15 +14,22 @@ import (
 
 const TAB = "\t"
 
-var Help = ""
+var Help = `pop: pop last element from stack
+list: show stack
+reset: reset stack
+quit: quit
+`
+
+var HelpStyle = lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("#71797E"))
 
 type model struct {
 	rl            readline.Model
 	stack         *rpn.RPNStack
 	currentOutput string
 	outputStyle   lipgloss.Style
-	help          string
 	history       string
+	quitting      bool
+	help          bool
 }
 
 func (m model) Init() tea.Cmd {
@@ -30,13 +37,23 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) View() string {
-	output := m.rl.View() + "\n"
-	output += m.outputStyle.Inline(true).Render(m.currentOutput)
+	if m.quitting {
+		return m.rl.TextStyle.Render("Bye!\n")
+	}
+	output := m.rl.View()
+	output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", m.currentOutput))
+
+	if m.help {
+		output += fmt.Sprintf("\n%s", HelpStyle.Render(Help))
+	}
 
 	return output
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.quitting {
+		return m, tea.Quit
+	}
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch {
@@ -60,31 +77,33 @@ func initialModel() tea.Model {
 	return model{
 		stack:       stack,
 		rl:          rl,
-		outputStyle: lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("#71797E")),
+		outputStyle: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#85c1e9")),
 	}
 }
 
 func (m *model) actionParse(input string) {
 	cleanExpr := strings.ToLower(strings.TrimSpace(input))
 	switch cleanExpr {
-	// case "h", "he", "hel", "help":
-	// 	s.Help()
+	case "h", "he", "hel", "help":
+		m.help = !m.help
+	case "q", "qu", "qui", "quit":
+		m.quitting = true
 	case "l", "ls", "li", "lis", "list":
-		m.currentOutput = fmt.Sprintf("%v\n", m.stack.GetValues())
+		m.currentOutput = fmt.Sprintf("%v", m.stack.GetValues())
 	case "p", "po", "pop":
 		val, err := m.stack.Pop()
 		if err != nil {
-			m.currentOutput = fmt.Sprintln("error:", err)
+			m.currentOutput = fmt.Sprint("error:", err)
 			return
 		}
-		m.currentOutput = fmt.Sprintf("%f\n", val)
+		m.currentOutput = fmt.Sprintf("%f", val)
 	case "r", "re", "res", "rese", "reset":
 		m.stack = rpn.NewStack()
 		m.currentOutput = ""
 	default:
 		err := rpn.StringParser(m.stack, cleanExpr)
 		if err != nil {
-			m.currentOutput = fmt.Sprintln("error:", err)
+			m.currentOutput = fmt.Sprint("error:", err)
 			return
 		}
 		m.currentOutput = ""
