@@ -116,6 +116,41 @@ func TestStringParser_ParsesANumberCorrectly(t *testing.T) {
 	}
 }
 
+func TestStringParser_ReturnsError(t *testing.T) {
+	t.Parallel()
+	type TestCase[N Number] struct {
+		Input string
+	}
+	testCasesFloat := []TestCase[float64]{
+		{
+			Input: "3.14.",
+		},
+		{
+			Input: "	3..14",
+		},
+		{
+			Input: "p 3",
+		},
+		{
+			Input: "0.00_",
+		},
+		{
+			Input: "3.1400000.00",
+		},
+		{
+			Input: "3425345 o",
+		},
+	}
+
+	for _, tc := range testCasesFloat {
+		stack := rpn.NewStack()
+		err := rpn.StringParser(stack, tc.Input)
+		if err == nil {
+			t.Errorf("want error, got nil for test case '%s'", tc.Input)
+		}
+	}
+}
+
 func TestStringParserSum_AddsTwoElements(t *testing.T) {
 	t.Parallel()
 	type TestCase struct {
