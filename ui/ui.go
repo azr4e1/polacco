@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -14,15 +15,19 @@ import (
 )
 
 const TAB = "\t"
-const BUTNWIDTH = 7
+const BUTNWIDTH = 9
 const BUTNHEIGHT = 3
 const ROWLEN = 4
+const TOTALWIDTH = (2 + BUTNWIDTH) * ROWLEN
 
-var Help = `pop: pop last element from stack
-list: show stack
+// 4 for the readline, 3 for the stack
+const TOTALHEIGHT = 4 + 3 + 4*(BUTNHEIGHT+2)
+
+var Help = `pop:   pop last element from stack
+list:  show stack
 reset: reset stack
-quit: quit
-help: toggle this help
+quit:  quit
+help:  toggle this help
 `
 
 var HelpStyle = lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("#71797E"))
@@ -37,6 +42,7 @@ type model struct {
 	quitting      bool
 	help          bool
 	buttons       []button.Model
+	error         error
 }
 
 func (m model) Init() tea.Cmd {
@@ -47,6 +53,10 @@ func (m model) View() string {
 	if m.quitting {
 		return m.rl.TextStyle.Render("Bye!\n")
 	}
+	if m.error != nil {
+		return m.rl.TextStyle.Render(m.error.Error() + "\n")
+	}
+	// readline
 	output := m.rl.View()
 	resultOutput := m.currentOutput
 	if len(resultOutput) > m.rl.Width+len(m.rl.Prompt)-2 {
@@ -88,6 +98,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	}
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		if msg.Width-1 < TOTALWIDTH {
+			m.error = errors.New("Window width is too small.")
+			return m, tea.Quit
+		}
+		totalHeight := TOTALHEIGHT
+		if m.help {
+			totalHeight += len(strings.Split(Help, "\n"))
+		}
+		if msg.Height-1 < totalHeight {
+			m.error = errors.New("Window height is too small.")
+			return m, tea.Quit
+		}
 	case tea.KeyMsg:
 		switch {
 		case key.Matches(msg, DefaultKeyMap.Quit):
