@@ -31,7 +31,6 @@ type Model struct {
 	active     bool
 	height     int
 	width      int
-	padding    string
 	delay      time.Duration
 	id         int
 	msgCounter int
@@ -80,11 +79,10 @@ func New(label string, id int, trigger key.Binding, opts ...option) Model {
 		Static:        false,
 		Trigger:       trigger,
 
-		height:  1,
-		width:   len(label),
-		padding: " ",
-		delay:   100 * time.Millisecond,
-		id:      id,
+		height: 1,
+		width:  len(label),
+		delay:  100 * time.Millisecond,
+		id:     id,
 	}
 
 	for _, o := range opts {

@@ -43,7 +43,7 @@ func (m Model) View() string {
 	button1 := m.button1.View()
 	button2 := m.button2.View()
 
-	return lipgloss.JoinVertical(lipgloss.Center, button1, button2)
+	return lipgloss.JoinHorizontal(lipgloss.Center, button1, button2)
 }
 
 func main() {
