@@ -3,15 +3,17 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
+	_ "time"
 
 	"github.com/azr4e1/polacco/button"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 )
 
 type Model struct {
-	button button.Model
+	button1 button.Model
+	button2 button.Model
 }
 
 func (m Model) Init() tea.Cmd {
@@ -26,21 +28,31 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	}
+	var cmds []tea.Cmd
 	var cmd tea.Cmd
-	m.button, cmd = m.button.Update(msg)
+	m.button1, cmd = m.button1.Update(msg)
+	cmds = append(cmds, cmd)
 
-	return m, cmd
+	m.button2, cmd = m.button2.Update(msg)
+	cmds = append(cmds, cmd)
+
+	return m, tea.Batch(cmds...)
 }
 
 func (m Model) View() string {
-	return m.button.View()
+	button1 := m.button1.View()
+	button2 := m.button2.View()
+
+	return lipgloss.JoinVertical(lipgloss.Center, button1, button2)
 }
 
 func main() {
-	trigger := key.NewBinding(key.WithKeys("q"))
-	buttonModel := button.New("ok", 0, trigger, button.SetDelay(5*time.Second), button.SetWidth(100), button.SetHeight(20))
-	model := Model{button: buttonModel}
-	model.button.Static = true
+	trigger1 := key.NewBinding(key.WithKeys("a"))
+	buttonModel1 := button.New("a", 0, trigger1, button.SetWidth(5), button.SetHeight(3))
+	trigger2 := key.NewBinding(key.WithKeys("s"))
+	buttonModel2 := button.New("s", 1, trigger2, button.SetWidth(5), button.SetHeight(3))
+	model := Model{button1: buttonModel1, button2: buttonModel2}
+	// model.button.Static = true
 	p := tea.NewProgram(model)
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v", err)

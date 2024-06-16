@@ -35,6 +35,7 @@ type Model struct {
 	delay      time.Duration
 	id         int
 	msgCounter int
+	blank      bool
 }
 
 type option func(*Model) error
@@ -74,8 +75,8 @@ func New(label string, id int, trigger key.Binding, opts ...option) Model {
 		Label:         label,
 		Border:        true,
 		InactiveStyle: lipgloss.NewStyle().UnsetBackground().UnsetForeground(),
-		ActiveStyle:   lipgloss.NewStyle().Background(lipgloss.Color("blue")).Foreground(lipgloss.Color("black")),
-		BorderStyle:   lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("grey")),
+		ActiveStyle:   lipgloss.NewStyle().Background(lipgloss.Color("#870087")).Foreground(lipgloss.Color("#000000")),
+		BorderStyle:   lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#3C3C3C")),
 		Static:        false,
 		Trigger:       trigger,
 
@@ -100,10 +101,21 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) View() string {
-	if m.active {
-		return m.Label
+	if m.blank {
+		return ""
 	}
-	return ""
+
+	style := lipgloss.NewStyle().Width(m.width).Height(m.height).Align(lipgloss.Center).AlignVertical(lipgloss.Center)
+	button := style.Render(m.Label)
+	if m.active {
+		button = m.ActiveStyle.Render(button)
+	} else {
+		button = m.InactiveStyle.Render(button)
+	}
+	if m.Border {
+		button = m.BorderStyle.Render(button)
+	}
+	return button
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
@@ -118,12 +130,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			m.deactivate()
 		}
 	case tea.WindowSizeMsg:
-		if msg.Width < m.width {
+		if msg.Width+1 < m.width {
 			errorMessage := errors.New("Window width is too small.")
+			m.blank = true
 			return m, tea.Sequence(tea.Println(errorMessage), tea.Quit)
 		}
-		if msg.Height < m.height {
+		if msg.Height+1 < m.height {
 			errorMessage := errors.New("Window height is too small.")
+			m.blank = true
 			return m, tea.Sequence(tea.Println(errorMessage), tea.Quit)
 		}
 	case tea.KeyMsg:
