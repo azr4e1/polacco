@@ -49,6 +49,20 @@ func (m model) Init() tea.Cmd {
 	return m.rl.Blink()
 }
 
+func paddingRight(output, padChar string, padLength int) string {
+	lines := strings.Split(output, "\n")
+	result := []string{}
+	for _, line := range lines {
+		diff := padLength - len(line)
+		if diff > 0 {
+			line += strings.Repeat(padChar, diff)
+		}
+		result = append(result, line)
+	}
+
+	return strings.Join(result, "\n")
+}
+
 func (m model) View() string {
 	if m.quitting {
 		return m.rl.TextStyle.Render("Bye!\n")
@@ -67,6 +81,7 @@ func (m model) View() string {
 	output = lipgloss.JoinVertical(lipgloss.Left, output, resultOutput)
 	output = m.borderStyle.Render(output)
 
+	// keyboard
 	rows := []string{}
 	row := []string{}
 	for _, b := range m.buttons {
@@ -86,6 +101,31 @@ func (m model) View() string {
 
 	output = lipgloss.JoinVertical(lipgloss.Left, output, keyboard)
 
+	// stack
+	stack := m.stack.GetValues()
+	stackLength := 0
+	stackEls := []string{}
+	truncated := false
+	for i := len(stack) - 1; i >= 0; i-- {
+		stackEl := fmt.Sprintf("%.2f", stack[i])
+		stackLength += len(stackEl) + 2
+		if stackLength+5 > TOTALWIDTH {
+			truncated = true
+			break
+		}
+		stackEls = append([]string{m.borderStyle.Render(m.outputStyle.Render(stackEl))}, stackEls...)
+	}
+	if truncated {
+		stackEls = append([]string{lipgloss.NewStyle().Height(3).AlignVertical(lipgloss.Center).Render("...")}, stackEls...)
+	}
+	if len(stackEls) == 0 {
+		stackEls = []string{m.borderStyle.Render("EMPTY")}
+	}
+	stackString := lipgloss.JoinHorizontal(lipgloss.Center, stackEls...)
+
+	output = lipgloss.JoinVertical(lipgloss.Left, output, stackString)
+
+	// help
 	if m.help {
 		output += fmt.Sprintf("\n%s", HelpStyle.Render(Help))
 	}
@@ -146,7 +186,7 @@ func initialModel() tea.Model {
 		buttons = append(buttons, btn)
 	}
 	// 2 accounts for the border width
-	rl := readline.New(readline.SetWidth((ROWLEN * (BUTNWIDTH + 2)) - 2))
+	rl := readline.New(readline.SetWidth(TOTALWIDTH - 2))
 	return model{
 		stack:       stack,
 		rl:          rl,
@@ -169,7 +209,7 @@ func (m *model) actionParse(input string) {
 	case "p", "po", "pop":
 		val, err := m.stack.Pop()
 		if err != nil {
-			m.currentOutput = fmt.Sprint("error:", err)
+			m.currentOutput = fmt.Sprint("error: ", err)
 			return
 		}
 		m.currentOutput = fmt.Sprintf("%f", val)
