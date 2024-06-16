@@ -11,10 +11,12 @@ import (
 
 type ActivateMsg struct {
 	button Model
+	tag    int
 }
 
 type DeactivateMsg struct {
 	button Model
+	tag    int
 }
 
 type Model struct {
@@ -26,12 +28,13 @@ type Model struct {
 	Static        bool
 	Trigger       key.Binding
 
-	active  bool
-	height  int
-	width   int
-	padding string
-	delay   time.Duration
-	id      int
+	active     bool
+	height     int
+	width      int
+	padding    string
+	delay      time.Duration
+	id         int
+	msgCounter int
 }
 
 type option func(*Model) error
@@ -103,7 +106,7 @@ func (m Model) View() string {
 	return ""
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case ActivateMsg:
 		if msg.button.id == m.id {
@@ -111,7 +114,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, cmd
 		}
 	case DeactivateMsg:
-		if msg.button.id == m.id {
+		if msg.button.id == m.id && msg.tag == m.msgCounter {
 			m.deactivate()
 		}
 	case tea.WindowSizeMsg:
@@ -125,14 +128,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.KeyMsg:
 		switch {
-		case msg.Type == tea.KeyCtrlC:
-			return m, tea.Quit
 		case key.Matches(msg, m.Trigger):
 			if m.Static {
 				m.active = !m.active
 				return m, nil
 			}
-			return m, SendActivateMsg(m)
+			return m, SendActivateMsg(&m)
 
 		}
 	}
@@ -144,15 +145,16 @@ func (m *Model) activate() tea.Cmd {
 	if m.Static {
 		return nil
 	}
-	return tea.Tick(m.delay, func(_ time.Time) tea.Msg { return DeactivateMsg{button: *m} })
+	return tea.Tick(m.delay, func(_ time.Time) tea.Msg { return DeactivateMsg{button: *m, tag: m.msgCounter} })
 }
 
 func (m *Model) deactivate() {
 	m.active = false
 }
 
-func SendActivateMsg(b Model) tea.Cmd {
+func SendActivateMsg(b *Model) tea.Cmd {
+	b.msgCounter++
 	return func() tea.Msg {
-		return ActivateMsg{button: b}
+		return ActivateMsg{button: *b, tag: b.msgCounter}
 	}
 }
