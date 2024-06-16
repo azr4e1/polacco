@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const TAB = "\t"
+const TAB = "    "
 const EmptyChar = " "
 
 type ReadlineMsg string
@@ -180,6 +180,9 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case key.Matches(msg, DefaultKeyMap.DeleteAfterCursor):
 			m.deleteAfterCursor()
 
+		case key.Matches(msg, DefaultKeyMap.DeleteBeforeCursor):
+			m.deleteBeforeCursor()
+
 		case msg.Type == tea.KeyRunes || msg.Type == tea.KeySpace:
 			m.updateCurrentInput(msg.String())
 		}
@@ -281,6 +284,7 @@ func (m *Model) enter() tea.Cmd {
 	m.updateHistory(input)
 	m.currentPrompt = ""
 	m.cursorPointer = 0
+	m.cursor.SetChar(EmptyChar)
 
 	return cmd
 }
@@ -342,10 +346,7 @@ func (m *Model) deleteBeforeCursor() {
 	next := m.currentPrompt[m.cursorPointer:]
 	m.currentPrompt = next
 	m.cacheHistory()
-	m.cursor.SetChar(EmptyChar)
-	if len(next) > 0 {
-		m.cursor.SetChar(string(next[0]))
-	}
+	m.decreaseCursor(m.cursorPointer)
 }
 
 func (m *Model) Blink() tea.Cmd {
