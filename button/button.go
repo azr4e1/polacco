@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -22,14 +23,15 @@ type Model struct {
 	InactiveStyle lipgloss.Style
 	ActiveStyle   lipgloss.Style
 	BorderStyle   lipgloss.Style
+	Static        bool
+	Trigger       key.Binding
 
-	active       bool
-	height       int
-	width        int
-	padding      string
-	delay        time.Duration
-	id           int
-	errorMessage error
+	active  bool
+	height  int
+	width   int
+	padding string
+	delay   time.Duration
+	id      int
 }
 
 type option func(*Model) error
@@ -64,13 +66,15 @@ func SetDelay(delay time.Duration) option {
 	}
 }
 
-func New(label string, id int, opts ...option) Model {
+func New(label string, id int, trigger key.Binding, opts ...option) Model {
 	m := &Model{
 		Label:         label,
 		Border:        true,
 		InactiveStyle: lipgloss.NewStyle().UnsetBackground().UnsetForeground(),
 		ActiveStyle:   lipgloss.NewStyle().Background(lipgloss.Color("blue")).Foreground(lipgloss.Color("black")),
 		BorderStyle:   lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("grey")),
+		Static:        false,
+		Trigger:       trigger,
 
 		height:  1,
 		width:   len(label),
@@ -93,9 +97,6 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) View() string {
-	if err := m.errorMessage; err != nil {
-		return err.Error()
-	}
 	if m.active {
 		return m.Label
 	}
@@ -115,18 +116,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case tea.WindowSizeMsg:
 		if msg.Width < m.width {
-			m.errorMessage = errors.New("Window width is too small.")
-			return m, tea.Quit
+			errorMessage := errors.New("Window width is too small.")
+			return m, tea.Sequence(tea.Println(errorMessage), tea.Quit)
 		}
 		if msg.Height < m.height {
-			m.errorMessage = errors.New("Window height is too small.")
-			return m, tea.Quit
+			errorMessage := errors.New("Window height is too small.")
+			return m, tea.Sequence(tea.Println(errorMessage), tea.Quit)
 		}
 	case tea.KeyMsg:
 		switch {
 		case msg.Type == tea.KeyCtrlC:
 			return m, tea.Quit
-		case msg.String() == "q":
+		case key.Matches(msg, m.Trigger):
+			if m.Static {
+				m.active = !m.active
+				return m, nil
+			}
 			return m, SendActivateMsg(m)
 
 		}
@@ -136,6 +141,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m *Model) activate() tea.Cmd {
 	m.active = true
+	if m.Static {
+		return nil
+	}
 	return tea.Tick(m.delay, func(_ time.Time) tea.Msg { return DeactivateMsg{button: *m} })
 }
 
