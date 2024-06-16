@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/azr4e1/polacco/button"
 	"github.com/azr4e1/polacco/readline"
 	"github.com/azr4e1/polacco/rpn"
 	"github.com/charmbracelet/bubbles/key"
@@ -13,11 +14,15 @@ import (
 )
 
 const TAB = "\t"
+const BUTNWIDTH = 7
+const BUTNHEIGHT = 3
+const ROWLEN = 4
 
 var Help = `pop: pop last element from stack
 list: show stack
 reset: reset stack
 quit: quit
+help: toggle this help
 `
 
 var HelpStyle = lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("#71797E"))
@@ -27,9 +32,11 @@ type model struct {
 	stack         *rpn.RPNStack
 	currentOutput string
 	outputStyle   lipgloss.Style
+	borderStyle   lipgloss.Style
 	history       string
 	quitting      bool
 	help          bool
+	buttons       []button.Model
 }
 
 func (m model) Init() tea.Cmd {
@@ -41,7 +48,33 @@ func (m model) View() string {
 		return m.rl.TextStyle.Render("Bye!\n")
 	}
 	output := m.rl.View()
-	output += m.outputStyle.Render(fmt.Sprintf("\n%s\n", m.currentOutput))
+	resultOutput := m.currentOutput
+	if len(resultOutput) > m.rl.Width+len(m.rl.Prompt)-2 {
+		resultOutput = resultOutput[len(resultOutput)-m.rl.Width-len(m.rl.Prompt)+2:]
+	}
+	resultOutput = m.outputStyle.Render(resultOutput)
+
+	output = lipgloss.JoinVertical(lipgloss.Left, output, resultOutput)
+	output = m.borderStyle.Render(output)
+
+	rows := []string{}
+	row := []string{}
+	for _, b := range m.buttons {
+		row = append(row, b.View())
+		if len(row) == ROWLEN {
+			rowString := lipgloss.JoinHorizontal(lipgloss.Center, row...)
+			rows = append(rows, rowString)
+			row = []string{}
+		}
+	}
+	if len(row) != 0 {
+		rowString := lipgloss.JoinHorizontal(lipgloss.Center, row...)
+		rows = append(rows, rowString)
+		row = []string{}
+	}
+	keyboard := lipgloss.JoinVertical(lipgloss.Center, rows...)
+
+	output = lipgloss.JoinVertical(lipgloss.Left, output, keyboard)
 
 	if m.help {
 		output += fmt.Sprintf("\n%s", HelpStyle.Render(Help))
@@ -67,18 +100,37 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	var cmd tea.Cmd
-	m.rl, cmd = m.rl.Update(msg)
+	var cmds []tea.Cmd
 
-	return m, cmd
+	m.rl, cmd = m.rl.Update(msg)
+	cmds = append(cmds, cmd)
+
+	for i, btn := range m.buttons {
+		btn, cmd = btn.Update(msg)
+		m.buttons[i] = btn
+		cmds = append(cmds, cmd)
+	}
+
+	return m, tea.Batch(cmds...)
 }
 
 func initialModel() tea.Model {
 	stack := rpn.NewStack()
-	rl := readline.New()
+	buttons := []button.Model{}
+	for id, label := range []string{"7", "8", "9", "+", "4", "5", "6", "-", "1", "2", "3", "*", "0", ".", "^", "/"} {
+		trigger := key.NewBinding(key.WithKeys(label))
+		btn := button.New(label, id, trigger, button.SetWidth(BUTNWIDTH), button.SetHeight(BUTNHEIGHT))
+		buttons = append(buttons, btn)
+	}
+	// 2 accounts for the border width
+	rl := readline.New(readline.SetWidth((ROWLEN * (BUTNWIDTH + 2)) - 2))
 	return model{
 		stack:       stack,
 		rl:          rl,
-		outputStyle: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#85c1e9")),
+		outputStyle: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#870087")),
+		borderStyle: lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#3C3C3C")),
+		buttons:     buttons,
+		help:        true,
 	}
 }
 
