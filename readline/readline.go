@@ -103,9 +103,18 @@ func SetWidth(width int) option {
 	}
 }
 
+func paddingRight(output, padChar string, padLength int) string {
+	diff := padLength - len(output)
+	if diff > 0 {
+		output += strings.Repeat(padChar, diff)
+	}
+
+	return output
+}
+
 func (m Model) View() string {
 	output := m.PromptStyle.Inline(true).Render(m.Prompt)
-	currentPrompt := m.currentPrompt[m.offsetLeft:m.offsetRight]
+	currentPrompt := paddingRight(m.currentPrompt[m.offsetLeft:m.offsetRight], " ", m.Width-len(m.Prompt))
 	cursorPointer := m.cursorPointer - m.offsetLeft
 	switch cursorPointer {
 	case len(currentPrompt):
