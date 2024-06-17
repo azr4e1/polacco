@@ -27,7 +27,6 @@ var Help = `pop:   pop last element from stack
 list:  show stack
 reset: reset stack
 quit:  quit
-help:  toggle this help
 `
 
 var HelpStyle = lipgloss.NewStyle().Italic(true).Foreground(lipgloss.Color("#71797E"))
@@ -40,7 +39,6 @@ type model struct {
 	borderStyle   lipgloss.Style
 	history       string
 	quitting      bool
-	help          bool
 	buttons       []button.Model
 	error         error
 }
@@ -126,9 +124,7 @@ func (m model) View() string {
 	output = lipgloss.JoinVertical(lipgloss.Left, output, stackString)
 
 	// help
-	if m.help {
-		output += fmt.Sprintf("\n%s", HelpStyle.Render(Help))
-	}
+	output += fmt.Sprintf("\n%s", HelpStyle.Render(Help))
 
 	return output
 }
@@ -143,10 +139,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.error = errors.New("Window width is too small.")
 			return m, tea.Quit
 		}
-		totalHeight := TOTALHEIGHT
-		if m.help {
-			totalHeight += len(strings.Split(Help, "\n"))
-		}
+		totalHeight := TOTALHEIGHT + len(strings.Split(Help, "\n"))
 		if msg.Height-1 < totalHeight {
 			m.error = errors.New("Window height is too small.")
 			return m, tea.Quit
@@ -193,15 +186,12 @@ func initialModel() tea.Model {
 		outputStyle: lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#870087")),
 		borderStyle: lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#3C3C3C")),
 		buttons:     buttons,
-		help:        true,
 	}
 }
 
 func (m *model) actionParse(input string) {
 	cleanExpr := strings.ToLower(strings.TrimSpace(input))
 	switch cleanExpr {
-	case "h", "he", "hel", "help":
-		m.help = !m.help
 	case "q", "qu", "qui", "quit":
 		m.quitting = true
 	case "l", "ls", "li", "lis", "list":
