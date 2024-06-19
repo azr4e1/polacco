@@ -26,7 +26,7 @@ type Model struct {
 	ActiveStyle   lipgloss.Style
 	BorderStyle   lipgloss.Style
 	Static        bool
-	Trigger       key.Binding
+	Key           key.Binding
 
 	active     bool
 	height     int
@@ -69,7 +69,7 @@ func SetDelay(delay time.Duration) option {
 	}
 }
 
-func New(label string, id int, trigger key.Binding, opts ...option) Model {
+func New(label string, id int, keybinding key.Binding, opts ...option) Model {
 	m := &Model{
 		Label:         label,
 		Border:        true,
@@ -77,7 +77,7 @@ func New(label string, id int, trigger key.Binding, opts ...option) Model {
 		ActiveStyle:   lipgloss.NewStyle().Background(lipgloss.Color("#870087")).Foreground(lipgloss.Color("#000000")),
 		BorderStyle:   lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForeground(lipgloss.Color("#3C3C3C")),
 		Static:        false,
-		Trigger:       trigger,
+		Key:           keybinding,
 
 		height: 1,
 		width:  len(label),
@@ -118,11 +118,6 @@ func (m Model) View() string {
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case ActivateMsg:
-		if msg.button.id == m.id {
-			cmd := m.activate()
-			return m, cmd
-		}
 	case DeactivateMsg:
 		if msg.button.id == m.id && msg.tag == m.msgCounter {
 			m.deactivate()
@@ -140,33 +135,25 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		}
 	case tea.KeyMsg:
 		switch {
-		case key.Matches(msg, m.Trigger):
-			if m.Static {
-				m.active = !m.active
-				return m, nil
-			}
-			return m, SendActivateMsg(&m)
+		case key.Matches(msg, m.Key):
+			m, cmd := m.Trigger()
+			return m, cmd
 
 		}
 	}
 	return m, nil
 }
 
-func (m *Model) activate() tea.Cmd {
-	m.active = true
+func (m *Model) Trigger() (Model, tea.Cmd) {
 	if m.Static {
-		return nil
+		m.active = !m.active
+		return *m, nil
 	}
-	return tea.Tick(m.delay, func(_ time.Time) tea.Msg { return DeactivateMsg{button: *m, tag: m.msgCounter} })
+	m.active = true
+	m.msgCounter++
+	return *m, tea.Tick(m.delay, func(_ time.Time) tea.Msg { return DeactivateMsg{button: *m, tag: m.msgCounter} })
 }
 
 func (m *Model) deactivate() {
 	m.active = false
-}
-
-func SendActivateMsg(b *Model) tea.Cmd {
-	b.msgCounter++
-	return func() tea.Msg {
-		return ActivateMsg{button: *b, tag: b.msgCounter}
-	}
 }
