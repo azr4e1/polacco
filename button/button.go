@@ -9,11 +9,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-type ActivateMsg struct {
-	button Model
-	tag    int
-}
-
 type DeactivateMsg struct {
 	button Model
 	tag    int
